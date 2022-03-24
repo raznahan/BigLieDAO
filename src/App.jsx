@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ethers } from "ethers";
 
 // import thirdweb
 import { useWeb3 } from "@3rdweb/hooks";
@@ -10,6 +11,9 @@ const sdk = new ThirdwebSDK("rinkeby");
 // We can grab a reference to our ERC-1155 contract.
 const bundleDropModule = sdk.getBundleDropModule(
   "0x0bab1780DD7A6649B755504EF81F4be4549d038a",
+);
+const tokenModule = sdk.getTokenModule(
+  "0xc85F78d5d1388C214C63757f7421AA0E5693F877"
 );
 
 const App = () => {
@@ -26,7 +30,66 @@ const App = () => {
   // isClaiming lets us easily keep a loading state while the NFT is minting.
   const [isClaiming, setIsClaiming] = useState(false);
 
-  // Another useEffect!
+  // Holds the amount of token each member has in state.
+  const [memberTokenAmounts, setMemberTokenAmounts] = useState({});
+  // The array holding all of our members addresses.
+  const [memberAddresses, setMemberAddresses] = useState([]);
+
+  // A fancy function to shorten someones wallet address, no need to show the whole thing. 
+  const shortenAddress = (str) => {
+    return str.substring(0, 6) + "..." + str.substring(str.length - 4);
+  };
+
+  // This useEffect grabs all the addresses of our members holding our NFT.
+  useEffect(async () => {
+    if (!hasClaimedNFT) {
+      return;
+    }
+
+    // Just like we did in the 7-airdrop-token.js file! Grab the users who hold our NFT
+    // with tokenId 0.
+    try {
+      const memberAddresses = await bundleDropModule.getAllClaimerAddresses("0");
+      setMemberAddresses(memberAddresses);
+      console.log("🚀 Members addresses", memberAddresses);
+    } catch (error) {
+      console.error("failed to get member list", error);
+    }
+  }, [hasClaimedNFT]);
+
+  // This useEffect grabs the # of token each member holds.
+  useEffect(async () => {
+    if (!hasClaimedNFT) {
+      return;
+    }
+
+    // Grab all the balances.
+    try {
+      const amounts = await tokenModule.getAllHolderBalances();
+      setMemberTokenAmounts(amounts);
+      console.log("👜 Amounts", amounts);
+    } catch (error) {
+      console.error("failed to get token amounts", error);
+    }
+  }, [hasClaimedNFT]);
+
+  // Now, we combine the memberAddresses and memberTokenAmounts into a single array
+  const memberList = useMemo(() => {
+    return memberAddresses.map((address) => {
+      return {
+        address,
+        tokenAmount: ethers.utils.formatUnits(
+          // If the address isn't in memberTokenAmounts, it means they don't
+          // hold any of our token.
+          memberTokenAmounts[address] || 0,
+          18,
+        ),
+      };
+    });
+  }, [memberAddresses, memberTokenAmounts]);
+
+
+  // Another useEffect! Get signer
   useEffect(() => {
     // We pass the signer to the sdk, which enables us to interact with
     // our deployed contract!
@@ -34,6 +97,7 @@ const App = () => {
   }, [signer]);
 
 
+  //Check if user has calaimed NFT
   useEffect(async () => {
     // If they don't have an connected wallet, exit!
     if (!address) {
@@ -42,7 +106,6 @@ const App = () => {
 
     // Check if the user has the NFT by using bundleDropModule.balanceOf
     const balance = await bundleDropModule.balanceOf(address, "0");
-
     try {
       // If balance is greater than 0, they have our NFT!
       if (balance.gt(0)) {
@@ -75,6 +138,29 @@ const App = () => {
       <div className="member-page">
         <h1>BigLieDAO Member Page</h1>
         <p>Congratulations on being a member</p>
+        <div>
+          <div>
+            <h2>Member List</h2>
+            <table className="card">
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>Token Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {memberList.map((member) => {
+                  return (
+                    <tr key={member.address}>
+                      <td>{shortenAddress(member.address)}</td>
+                      <td>{member.tokenAmount}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   };

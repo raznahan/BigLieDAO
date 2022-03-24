@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import { UnsupportedChainIdError } from "@web3-react/core";
 
 // import thirdweb
 import { useWeb3 } from "@3rdweb/hooks";
@@ -171,6 +172,18 @@ const App = () => {
     }
   }, [address]);
 
+  if (error instanceof UnsupportedChainIdError) {
+    return (
+      <div className="unsupported-network">
+        <h2>Please connect to Rinkeby</h2>
+        <p>
+          This dapp only works on the Rinkeby network, please switch networks
+          in your connected wallet.
+        </p>
+      </div>
+    );
+  }
+
   if (!address) {
     return (
       <div className="landing">
@@ -339,35 +352,35 @@ const App = () => {
     );
   };
 
-const mintNft = async () => {
-  setIsClaiming(true);
-  try {
-    // Call bundleDropModule.claim("0", 1) to mint nft to user's wallet.
-    await bundleDropModule.claim("0", 1);
-    // Set claim state.
-    setHasClaimedNFT(true);
-    // Show user their fancy new NFT!
-    console.log(`🌊 Successfully Minted! Check it out on OpenSea: https://testnets.opensea.io/assets/${bundleDropModule.address}/0`);
-  } catch (error) {
-    console.error("failed to claim", error);
-  } finally {
-    // Stop loading state.
-    setIsClaiming(false);
+  const mintNft = async () => {
+    setIsClaiming(true);
+    try {
+      // Call bundleDropModule.claim("0", 1) to mint nft to user's wallet.
+      await bundleDropModule.claim("0", 1);
+      // Set claim state.
+      setHasClaimedNFT(true);
+      // Show user their fancy new NFT!
+      console.log(`🌊 Successfully Minted! Check it out on OpenSea: https://testnets.opensea.io/assets/${bundleDropModule.address}/0`);
+    } catch (error) {
+      console.error("failed to claim", error);
+    } finally {
+      // Stop loading state.
+      setIsClaiming(false);
+    }
   }
-}
 
-// Render mint nft screen.
-return (
-  <div className="mint-nft">
-    <h1>Mint your free BigLieDAO Membership NFT</h1>
-    <button
-      disabled={isClaiming}
-      onClick={() => mintNft()}
-    >
-      {isClaiming ? "Minting..." : "Mint your nft (FREE)"}
-    </button>
-  </div>
-);
+  // Render mint nft screen.
+  return (
+    <div className="mint-nft">
+      <h1>Mint your free BigLieDAO Membership NFT</h1>
+      <button
+        disabled={isClaiming}
+        onClick={() => mintNft()}
+      >
+        {isClaiming ? "Minting..." : "Mint your nft (FREE)"}
+      </button>
+    </div>
+  );
 };
 
 export default App;

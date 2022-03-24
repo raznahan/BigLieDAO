@@ -1,9 +1,10 @@
 {
-  "name": "mydao",
+  "name": "bigliedao",
   "version": "0.1.0",
   "private": true,
+  "author": "Moji <moji.rzn@gmail.com>",
   "engines": {
-    "node": ">=16.0.0"
+    "node": "16.14.0"
   },
   "dependencies": {
     "@3rdweb/hooks": "^1.6.0",
